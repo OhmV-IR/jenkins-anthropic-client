@@ -1,0 +1,6 @@
+<?jelly escape-by-default='true'?>
+<div>
+    This plugin provides AI automated code review into the Jenkins build process and allows build agents to run as
+    AI agents to check and review code with a highly-configurable extensible process to allow for specialized tools
+    and other helpful procedures.
+</div>

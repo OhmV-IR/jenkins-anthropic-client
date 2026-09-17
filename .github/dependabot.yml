@@ -1,0 +1,36 @@
+version: 2
+updates:
+  # Maintain Java / Maven dependencies
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Etc/UTC"
+    open-pull-requests-limit: 10
+    # Group dependencies into single PRs to avoid PR fatigue
+    groups:
+      jenkins-core-and-parent:
+        patterns:
+          - "org.jenkins-ci.plugins:plugin"
+          - "io.jenkins.tools.bom:*"
+          - "org.jenkins-ci.main:*"
+      plugin-dependencies:
+        patterns:
+          - "org.jenkins-ci.plugins*"
+          - "io.jenkins.plugins*"
+
+  # Maintain GitHub Actions dependencies
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Etc/UTC"
+    open-pull-requests-limit: 5
+    groups:
+      actions:
+        patterns:
+          - "*"
