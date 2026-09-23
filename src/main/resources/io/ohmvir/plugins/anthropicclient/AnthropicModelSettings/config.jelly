@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+    <f:section title="${%Anthropic Model Configuration}">
+        <f:entry title="${%API Key Credential}" field="apiKeyCredentialsId">
+            <f:select />
+        </f:entry>
+        <f:entry title="${%API Base URL}" description="${%Anthropic API Base URL. Leave blank for default: https://api.anthropic.com}" field="apiBaseUrl">
+            <f:textbox default="https://api.anthropic.com"/>
+        </f:entry>
+        <f:entry title="${%Model Name}" field="modelName">
+            <f:select />
+        </f:entry>
+    </f:section>
+</j:jelly>

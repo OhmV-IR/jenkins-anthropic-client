@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form">
+    <f:section title="${%Anthropic Client Configuration}">
+        <f:entry title="${%Timeout Seconds}" description="${%How long to wait for Anthropic API to respond before giving up. 0 is considered infinite}" field="timeoutSeconds">
+            <f:number default="120"/>
+        </f:entry>
+        <f:entry title="${%Anthropic API Version}" description="${%API version header sent to Anthropic (e.g. 2023-06-01)}" field="anthropicVersion">
+            <f:textbox default="2023-06-01"/>
+        </f:entry>
+        <f:entry title="${%Default Max Tokens}" description="${%Default max tokens to request when not specified in the model request}" field="defaultMaxTokens">
+            <f:number default="4096"/>
+        </f:entry>
+    </f:section>
+</j:jelly>
