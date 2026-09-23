@@ -53,7 +53,6 @@ public class AnthropicModelDataRetriever extends ModelDataRetriever<AnthropicMod
         }
 
         ModelData ret = new ModelData(configuration);
-        String retrievedModelId = modelInfo.id();
         var modelCapabilities = modelInfo.capabilities().orElse(null);
 
         List<ModelCapability> capabilities = new ArrayList<>();

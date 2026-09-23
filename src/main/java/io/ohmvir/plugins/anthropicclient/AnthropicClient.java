@@ -24,7 +24,6 @@ import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.*;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.jspecify.annotations.NonNull;
 
@@ -84,8 +83,9 @@ public class AnthropicClient extends ModelClient<AnthropicModelSettings, Anthrop
 
         String apiKey = SecretsUtils.getSecretText(configuration.getApiKeyCredentialsId(), null);
         if (apiKey == null || apiKey.isBlank()) {
-            throw new IllegalStateException("Anthropic API key credential could not be resolved for model configuration: "
-                + configuration.getModelId());
+            throw new IllegalStateException(
+                    "Anthropic API key credential could not be resolved for model configuration: "
+                            + configuration.getModelId());
         }
 
         StringBuilder systemPromptBuilder = new StringBuilder();
@@ -140,16 +140,16 @@ public class AnthropicClient extends ModelClient<AnthropicModelSettings, Anthrop
 
                 case InputFileContent fileContent -> {
                     ContentBlockParam docBlock = createFileContentBlock(fileContent);
-                    currentUserBlocks.add(docBlock);
+                    if (docBlock != null) {
+                        currentUserBlocks.add(docBlock);
+                    }
                 }
 
                 case ToolCallResponseContent toolCallResponse -> {
+                    String responseContent = toolCallResponse.getResponseContent();
                     ToolResultBlockParam.Builder toolResBuilder = ToolResultBlockParam.builder()
                             .toolUseId(toolCallResponse.getToolUseId())
-                            .content(
-                                    toolCallResponse.getResponseContent() != null
-                                            ? toolCallResponse.getResponseContent()
-                                            : "");
+                            .content(responseContent != null ? responseContent : "");
                     if (!toolCallResponse.isSuccessful()) {
                         toolResBuilder.isError(true);
                     }
@@ -161,7 +161,10 @@ public class AnthropicClient extends ModelClient<AnthropicModelSettings, Anthrop
                 }
 
                 case InputConversationContent conversationContent -> {
-                    preConversationMessages.addAll(convertConversation(conversationContent));
+                    List<MessageParam> conversationMessages = convertConversation(conversationContent);
+                    if (conversationMessages != null) {
+                        preConversationMessages.addAll(conversationMessages);
+                    }
                 }
 
                 case MaxOutputTokensContent maxOutputTokensContent -> {
@@ -220,12 +223,12 @@ public class AnthropicClient extends ModelClient<AnthropicModelSettings, Anthrop
 
         MessageCreateParams.Builder paramsBuilder = MessageCreateParams.builder()
                 .model(Model.of(configuration.getModelName()))
-            .maxTokens(effectiveMaxTokens)
-            .putAdditionalHeader(
-                "anthropic-version",
-                clientConfiguration != null
-                    ? clientConfiguration.getAnthropicVersion()
-                    : AnthropicClientSettings.DEFAULT_ANTHROPIC_VERSION);
+                .maxTokens(effectiveMaxTokens)
+                .putAdditionalHeader(
+                        "anthropic-version",
+                        clientConfiguration != null
+                                ? clientConfiguration.getAnthropicVersion()
+                                : AnthropicClientSettings.DEFAULT_ANTHROPIC_VERSION);
 
         if (!systemPromptBuilder.isEmpty()) {
             paramsBuilder.system(systemPromptBuilder.toString());
@@ -276,10 +279,10 @@ public class AnthropicClient extends ModelClient<AnthropicModelSettings, Anthrop
                 : 120L;
 
         com.anthropic.client.AnthropicClient anthropicClient = AnthropicOkHttpClient.builder()
-            .apiKey(apiKey)
-            .baseUrl(configuration.getApiBaseUrl())
-            .timeout(Duration.ofSeconds(timeoutSec))
-            .build();
+                .apiKey(apiKey)
+                .baseUrl(configuration.getApiBaseUrl())
+                .timeout(Duration.ofSeconds(timeoutSec))
+                .build();
         try {
             Message responseMessage = anthropicClient.messages().create(paramsBuilder.build());
 
@@ -415,9 +418,9 @@ public class AnthropicClient extends ModelClient<AnthropicModelSettings, Anthrop
                 .data(data)
                 .build();
 
-        return ContentBlockParam.ofImage(ImageBlockParam.builder()
+        return Objects.requireNonNull(ContentBlockParam.ofImage(ImageBlockParam.builder()
                 .source(ImageBlockParam.Source.ofBase64(source))
-                .build());
+                .build()));
     }
 
     private ContentBlockParam createFileContentBlock(InputFileContent fileContent) {
@@ -437,7 +440,7 @@ public class AnthropicClient extends ModelClient<AnthropicModelSettings, Anthrop
         }
 
         docBuilder.citations(CitationsConfigParam.builder().enabled(true).build());
-        return ContentBlockParam.ofDocument(docBuilder.build());
+        return Objects.requireNonNull(ContentBlockParam.ofDocument(docBuilder.build()));
     }
 
     private Tool toolToAnthropicTool(InputToolContent toolContent) {
@@ -498,9 +501,10 @@ public class AnthropicClient extends ModelClient<AnthropicModelSettings, Anthrop
                         .build());
             } else if (item instanceof ToolCallResponseContent toolRes) {
                 role = MessageParam.Role.USER;
+                String responseContent = toolRes.getResponseContent();
                 ToolResultBlockParam.Builder toolResBuilder = ToolResultBlockParam.builder()
                         .toolUseId(toolRes.getToolUseId())
-                        .content(toolRes.getResponseContent() != null ? toolRes.getResponseContent() : "");
+                        .content(responseContent != null ? responseContent : "");
                 if (!toolRes.isSuccessful()) {
                     toolResBuilder.isError(true);
                 }
@@ -512,6 +516,7 @@ public class AnthropicClient extends ModelClient<AnthropicModelSettings, Anthrop
             } else if (item instanceof InputFileContent fileContent) {
                 role = MessageParam.Role.USER;
                 block = createFileContentBlock(fileContent);
+                if (block == null) continue;
             } else {
                 continue;
             }

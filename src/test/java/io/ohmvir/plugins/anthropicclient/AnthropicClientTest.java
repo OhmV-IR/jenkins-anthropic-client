@@ -68,8 +68,8 @@ public class AnthropicClientTest {
                 Descriptor.FormException.class,
                 () -> new AnthropicModelSettings("claude-3-5-sonnet", null, "https://api.anthropic.com"));
         assertThrows(
-            Descriptor.FormException.class,
-            () -> new AnthropicModelSettings("claude-3-5-sonnet", "valid-id", "ftp://api.anthropic.com"));
+                Descriptor.FormException.class,
+                () -> new AnthropicModelSettings("claude-3-5-sonnet", "valid-id", "ftp://api.anthropic.com"));
     }
 
     @Test
