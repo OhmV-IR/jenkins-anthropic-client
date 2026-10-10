@@ -36,7 +36,7 @@ public class AnthropicModelSettings extends ModelConfiguration {
     private final @Getter String apiBaseUrl;
 
     public AnthropicModelSettings() throws Descriptor.FormException {
-        super("claude-3-5-sonnet-latest", "Claude 3.5 Sonnet");
+        super("claude-opus-5-5", "Claude Opus 5.5");
         this.apiKeyCredentialsId = null;
         this.apiBaseUrl = DEFAULT_API_BASE_URL;
     }
@@ -107,9 +107,15 @@ public class AnthropicModelSettings extends ModelConfiguration {
             return "Anthropic Model";
         }
 
+        @POST
         public ListBoxModel doFillModelNameItems(
                 @QueryParameter String apiKeyCredentialsId, @QueryParameter String apiBaseUrl) {
             ListBoxModel models = new ListBoxModel();
+            // The credential is resolved as SYSTEM and sent to the caller-supplied base URL, so only administrators
+            // (who configure models) may trigger this.
+            if (Jenkins.getInstanceOrNull() != null && !Jenkins.get().hasPermission(Jenkins.ADMINISTER)) {
+                return models;
+            }
             if (apiKeyCredentialsId == null || apiKeyCredentialsId.isBlank()) {
                 models.add(new ListBoxModel.Option(
                         "Please select a valid API Key credential to populate models", "", true));
@@ -127,14 +133,14 @@ public class AnthropicModelSettings extends ModelConfiguration {
                 return models;
             }
 
+            com.anthropic.client.AnthropicClient client = AnthropicOkHttpClient.builder()
+                    .apiKey(secretKey)
+                    .baseUrl(baseUrl)
+                    .timeout(Duration.ofSeconds(10))
+                    .build();
             try {
-                com.anthropic.client.AnthropicClient client = AnthropicOkHttpClient.builder()
-                        .apiKey(secretKey)
-                        .baseUrl(baseUrl)
-                        .timeout(Duration.ofSeconds(10))
-                        .build();
-
-                for (ModelInfo modelInfo : client.models().list().data()) {
+                // The list endpoint is paginated; read every page, not just the first
+                for (ModelInfo modelInfo : client.models().list().autoPager()) {
                     String id = modelInfo.id();
                     String name = modelInfo.displayName();
                     if (id != null && !id.isBlank()) {
@@ -147,6 +153,8 @@ public class AnthropicModelSettings extends ModelConfiguration {
                         Level.WARNING, "Failed to retrieve available models from Anthropic API: " + e.getMessage(), e);
                 models.add(
                         new ListBoxModel.Option("Error retrieving models from Anthropic: " + e.getMessage(), "", true));
+            } finally {
+                client.close();
             }
 
             return models;
@@ -175,6 +183,9 @@ public class AnthropicModelSettings extends ModelConfiguration {
 
         @POST
         public FormValidation doCheckApiKeyCredentialsId(@QueryParameter String value) {
+            if (Jenkins.getInstanceOrNull() != null && !Jenkins.get().hasPermission(Jenkins.ADMINISTER)) {
+                return FormValidation.ok();
+            }
             if (value == null || value.trim().isEmpty()) {
                 return FormValidation.error("API Key Credential is required");
             }
